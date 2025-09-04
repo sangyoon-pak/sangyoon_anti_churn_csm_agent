@@ -43,21 +43,25 @@ This system uses a **decision-making agent** with an integrated **evaluator tool
 
 ```
 anti_churn_agent/
-├── data_loader.py                  # Customer data loading
+├── agent_chat.py                   # Main chat interface
+├── appier_context.py               # Appier-specific context and knowledge
+├── chat_memory.py                  # Chat memory system
+├── chat_memory.db                  # SQLite database for conversation memory
 ├── context_builder.py              # Context generation
-├── local_data_server.py            # Simple MCP server
+├── data_loader.py                  # Customer data loading
+├── local_data_server.py            # MCP server for data access
 ├── traced_system.py                # Traced multi-agent system
 ├── tracers.py                      # Trace ID generation
-├── gradio_traced_chat.py           # Web interface (Gradio)
-├── create_testing_notebook.py      # Generate testing notebook
-├── quick_test.py                   # Quick functionality test
 ├── data/customers/                 # Customer data (CSV files)
-├── notebooks/                      # Testing & development
+│   ├── ACME001/                   # Customer data directories
+│   ├── FIN001/
+│   └── TECH002/
+├── notebooks/                      # Jupyter notebooks for development
+│   ├── brainstorm.ipynb
+│   └── notebook.ipynb
 ├── pyproject.toml                  # Project dependencies
-├── mcp_config.json                 # MCP configuration
-├── README.md                       # This file
-├── HOW_TO_RUN.md                   # Running guide
-└── start.sh                        # Setup script
+├── uv.lock                         # Dependency lock file
+└── README.md                       # This file
 ```
 
 ## 🛠️ Installation
@@ -76,23 +80,23 @@ export BRAVE_API_KEY="your-brave-api-key"  # Optional for web search
 
 3. **Run the system:**
 ```bash
-python gradio_traced_chat.py  # Web interface (Recommended)
+python agent_chat.py          # Main chat interface (Recommended)
 # or
 python traced_system.py       # Command line
 ```
 
 ## 🚀 Usage
 
-### Web Interface (Recommended)
+### Chat Interface (Recommended)
 ```bash
-python gradio_traced_chat.py
+python agent_chat.py
 ```
 
-This starts a beautiful web interface at `http://localhost:7860` where you can:
+This starts the main chat interface where you can:
 - Ask questions about customers: `"What's the churn risk for ACME001?"`
 - Get recommendations: `"How can I help TECH002 reduce their churn risk?"`
-- View available customers in the sidebar
-- See real-time multi-agent analysis with tracing
+- Access customer data and analysis
+- See multi-agent analysis with tracing
 
 ### Command Line Interface
 ```bash
@@ -101,15 +105,11 @@ python traced_system.py
 
 This runs the traced multi-agent system directly with detailed output.
 
-### Quick Testing
+### Development and Testing
 ```bash
-python quick_test.py  # Test basic functionality
-```
-
-### Comprehensive Testing
-```bash
-python create_testing_notebook.py  # Generate testing notebook
-jupyter notebook notebooks/agent_tool_testing.ipynb  # Run tests
+# Use the existing notebooks for development and testing
+jupyter notebook notebooks/brainstorm.ipynb
+jupyter notebook notebooks/notebook.ipynb
 ```
 
 ### Example Queries
@@ -175,24 +175,18 @@ Customer data is stored in CSV files under `data/customers/{customer_id}/`:
 
 ## 🧪 Testing
 
-### Quick Test
+### Development and Testing
+Use the existing Jupyter notebooks for development and testing:
 ```bash
-python quick_test.py
+jupyter notebook notebooks/brainstorm.ipynb
+jupyter notebook notebooks/notebook.ipynb
 ```
 
-### Comprehensive Testing
-Use the generated notebook for thorough testing:
-```bash
-python create_testing_notebook.py
-jupyter notebook notebooks/agent_tool_testing.ipynb
-```
-
-Tests include:
-- **Evaluator Tool Integration** - Verify evaluator works as a tool
-- **Web Search Strategy** - Test web search only for high-risk clients
-- **Tool Coordination** - Ensure all tools work together properly
-- **Error Handling** - Test edge cases and error scenarios
-- **Performance** - Measure response times and quality
+These notebooks can be used for:
+- **System Testing** - Test the multi-agent system functionality
+- **Tool Integration** - Verify all tools work together properly
+- **Data Analysis** - Explore customer data and patterns
+- **Development** - Prototype new features and improvements
 
 ## 🔄 Workflow
 
@@ -205,15 +199,14 @@ Tests include:
 
 ## 🎯 Key Features
 
-- **Beautiful Web Interface** - Modern Gradio interface with real-time chat
+- **Chat Interface** - Interactive chat interface for customer analysis
 - **Integrated Evaluator Tool** - Quality assessment built into decision process
 - **Strategic Web Search** - Only used when needed for high-risk clients
-- **Smart UI Behavior** - Evaluation results hidden for PASS cases
 - **Data-Driven Analysis** - Based on real customer data
 - **Async Processing** - Efficient handling of multiple operations
 - **MCP Integration** - Extensible data and tool access
 - **OpenAI Agents Tracing** - Comprehensive debugging and monitoring
-- **Ultra-Clean Architecture** - Minimal, maintainable codebase
+- **Clean Architecture** - Minimal, maintainable codebase
 - **Appier-Specific Recommendations** - Tailored suggestions using Appier's AI-powered solutions
 - **Industry Expertise Integration** - Deep knowledge of target markets and use cases
 - **Persistent Chat Memory** - SQLite-based conversation context and customer tracking
