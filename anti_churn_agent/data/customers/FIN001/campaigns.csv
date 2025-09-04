@@ -1,0 +1,16 @@
+campaign_id,campaign_name,email_sent,email_opened,email_clicked,conversion_rate,revenue_generated,date_sent
+CAM001,Welcome Series - Day 1,2000,800,120,6.00,25000,2024-01-15
+CAM002,Feature Update - Analytics,2000,700,105,5.25,0,2024-01-20
+CAM003,Monthly Newsletter,2000,900,135,6.75,0,2024-02-01
+CAM004,Product Demo Invitation,2000,600,90,4.50,0,2024-02-10
+CAM005,Customer Success Story,2000,800,120,6.00,0,2024-02-15
+CAM006,Webinar Invitation,2000,700,105,5.25,0,2024-02-20
+CAM007,Feature Announcement,2000,750,113,5.65,0,2024-03-01
+CAM008,Case Study - ROI,2000,850,128,6.40,0,2024-03-10
+CAM009,Best Practices Guide,2000,800,120,6.00,0,2024-03-15
+CAM010,Quarterly Review,2000,900,135,6.75,0,2024-03-20
+CAM011,Compliance Update,2000,750,113,5.65,0,2024-04-01
+CAM012,Industry Insights,2000,800,120,6.00,0,2024-04-05
+CAM013,Advanced Features Webinar,2000,700,105,5.25,0,2024-04-10
+CAM014,Performance Report,2000,850,128,6.40,0,2024-04-15
+CAM015,Success Metrics,2000,900,135,6.75,0,2024-04-20

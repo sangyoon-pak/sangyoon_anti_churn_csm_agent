@@ -1,0 +1,2 @@
+customer_id,customer_name,industry,segment,account_size,annual_revenue,contract_value,contract_start_date,contract_end_date,renewal_date,account_manager,lead_source,status,last_contact_date,next_contact_date,churn_risk_score,notes
+TECH002,TechStart Inc,Technology,Mid-Market,100-999,15000000,75000,2023-03-20,2024-03-20,2024-03-20,Sarah Johnson,Referral,Active,2024-03-10,2024-04-10,0.85,Multiple unresolved support tickets usage declining
