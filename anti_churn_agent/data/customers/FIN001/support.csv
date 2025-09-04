@@ -1,4 +1,0 @@
-ticket_id,ticket_type,priority,status,subject,description,sentiment_score,created_date,resolved_date,resolution_time_hours,assigned_to
-TKT027,Feature Request,Low,Resolved,Request for additional reporting fields,Would like to add custom fields to our monthly reports for better compliance tracking.,0.4,2024-01-10,2024-01-12,48,John Smith
-TKT028,Technical Issue,Medium,Resolved,Minor display issue in dashboard,Small formatting issue in the analytics dashboard. Not critical but would like it fixed.,-0.2,2024-02-15,2024-02-16,24,John Smith
-TKT029,Feature Request,Medium,Open,Request for advanced compliance features,Looking for additional compliance and audit trail features for our financial services needs.,0.3,2024-03-01,2024-03-15,336,John Smith
