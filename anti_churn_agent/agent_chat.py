@@ -9,6 +9,8 @@ import asyncio
 import gradio as gr
 import uuid
 import hashlib
+import threading
+import time
 from typing import List, Dict, Any
 from traced_system import TracedMultiAgentSystem
 from data_loader import DataLoader
@@ -22,6 +24,8 @@ class GradioChatInterface:
         self.memory = ChatMemory()
         self.user_systems = {}  # Store systems per user
         self.api_key = os.getenv("OPENAI_API_KEY")
+        self.tool_status = {}  # Store tool status per user
+        self.tool_history = {}  # Store tool call history per user
     
     def generate_user_id(self, request: gr.Request) -> str:
         """Generate a unique session ID for each browser tab"""
@@ -62,10 +66,39 @@ class GradioChatInterface:
             system = TracedMultiAgentSystem(self.api_key)
             session_id = f"user_{user_id}_{uuid.uuid4().hex[:8]}"
             system.set_session_id(session_id)
+            
+            # Set up tool call callback for this user
+            def tool_callback(tool_name: str, status: str):
+                self.tool_status[user_id] = {
+                    'tool_name': tool_name,
+                    'status': status,
+                    'timestamp': time.time()
+                }
+                
+                # Add to tool history
+                if user_id not in self.tool_history:
+                    self.tool_history[user_id] = []
+                
+                self.tool_history[user_id].append({
+                    'tool_name': tool_name,
+                    'status': status,
+                    'timestamp': time.time()
+                })
+                
+                # Keep only last 10 tool calls
+                if len(self.tool_history[user_id]) > 10:
+                    self.tool_history[user_id] = self.tool_history[user_id][-10:]
+                
+                print(f"Tool call for user {user_id}: {tool_name} - {status}")
+            
+            system.set_tool_call_callback(tool_callback)
+            
             self.user_systems[user_id] = {
                 'system': system,
                 'session_id': session_id
             }
+            self.tool_status[user_id] = {'tool_name': None, 'status': 'idle', 'timestamp': time.time()}
+            self.tool_history[user_id] = []
             print(f"DEBUG: Created new system for user_id: {user_id}")
         else:
             print(f"DEBUG: Found existing system for user_id: {user_id}")
@@ -141,6 +174,73 @@ class GradioChatInterface:
         user_system_data['session_id'] = new_session_id
         
         return "Memory cleared"
+    
+    def get_tool_status(self, user_id: str = None) -> str:
+        """Get current tool status for a user"""
+        if not user_id:
+            user_id = "anonymous"
+        
+        if user_id not in self.tool_status:
+            return "🟢 Ready"
+        
+        status_info = self.tool_status[user_id]
+        tool_name = status_info.get('tool_name')
+        status = status_info.get('status', 'idle')
+        
+        if status == 'idle' or not tool_name:
+            return "🟢 Ready"
+        elif status == 'starting':
+            # Show more detailed tool names
+            if tool_name == "Agent Processing":
+                return "🤖 Agent is thinking..."
+            elif tool_name.startswith("get_"):
+                return f"🔍 Fetching {tool_name.replace('get_', '').replace('_', ' ')}..."
+            elif tool_name.startswith("find_"):
+                return f"🔎 Searching {tool_name.replace('find_', '').replace('_', ' ')}..."
+            else:
+                return f"🔄 Using {tool_name}..."
+        elif status == 'completed':
+            if tool_name == "Agent Processing":
+                return "✅ Agent finished processing"
+            else:
+                return f"✅ Completed {tool_name}"
+        elif status.startswith('error'):
+            return f"❌ Error with {tool_name}"
+        else:
+            return f"🔄 {tool_name}: {status}"
+    
+    def get_tool_history(self, user_id: str = None) -> str:
+        """Get tool call history for a user"""
+        if not user_id:
+            user_id = "anonymous"
+        
+        if user_id not in self.tool_history or not self.tool_history[user_id]:
+            return "No recent tool activity"
+        
+        history_lines = ["**Recent Tool Activity:**"]
+        for entry in self.tool_history[user_id][-5:]:  # Show last 5 tools
+            tool_name = entry['tool_name']
+            status = entry['status']
+            timestamp = time.strftime('%H:%M:%S', time.localtime(entry['timestamp']))
+            
+            if status == 'starting':
+                if tool_name == "Agent Processing":
+                    history_lines.append(f"🤖 {timestamp} - Agent started processing")
+                elif tool_name.startswith("get_"):
+                    history_lines.append(f"🔍 {timestamp} - Fetching {tool_name.replace('get_', '').replace('_', ' ')}")
+                elif tool_name.startswith("find_"):
+                    history_lines.append(f"🔎 {timestamp} - Searching {tool_name.replace('find_', '').replace('_', ' ')}")
+                else:
+                    history_lines.append(f"🔄 {timestamp} - Using {tool_name}")
+            elif status == 'completed':
+                if tool_name == "Agent Processing":
+                    history_lines.append(f"✅ {timestamp} - Agent finished processing")
+                else:
+                    history_lines.append(f"✅ {timestamp} - Completed {tool_name}")
+            elif status.startswith('error'):
+                history_lines.append(f"❌ {timestamp} - Error with {tool_name}")
+        
+        return "\n".join(history_lines)
     
     def create_interface(self):
         """Create the Gradio interface"""
@@ -222,6 +322,14 @@ class GradioChatInterface:
                     gr.Markdown("### 🟢 System Status")
                     status_text = gr.Markdown("✅ **All systems ready**")
                     
+                    # Tool status display
+                    gr.Markdown("### 🛠️ Tool Status")
+                    tool_status_display = gr.Markdown("🟢 Ready", elem_id="tool-status")
+                    
+                    # Tool history display
+                    gr.Markdown("### 📋 Tool History")
+                    tool_history_display = gr.Markdown("No recent tool activity", elem_id="tool-history")
+                    
                     # Available tools info
                     with gr.Accordion("🛠️ Available Tools", open=False):
                         gr.Markdown("""
@@ -242,6 +350,8 @@ class GradioChatInterface:
                     clear_btn = gr.Button("🗑️ Clear Chat", variant="secondary")
                     memory_btn = gr.Button("🧠 Show Memory", variant="secondary")
                     clear_memory_btn = gr.Button("🧹 Clear Memory", variant="secondary")
+                    refresh_tool_status_btn = gr.Button("🔄 Refresh Tool Status", variant="secondary")
+                    refresh_tool_history_btn = gr.Button("🔄 Refresh History", variant="secondary")
                     
                     # Memory display
                     gr.Markdown("### 💾 Memory")
@@ -253,7 +363,7 @@ class GradioChatInterface:
             
             def bot_response(history, request: gr.Request):
                 if not history or not history[-1].get("content"):
-                    return history
+                    return history, "🟢 Ready"
                 
                 user_message = history[-1]["content"]
                 # Generate stable user ID
@@ -266,15 +376,17 @@ class GradioChatInterface:
                     response = f"Error: {str(e)}"
                 
                 history.append({"role": "assistant", "content": response})
-                return history
+                tool_status = self.get_tool_status(user_id)
+                tool_history = self.get_tool_history(user_id)
+                return history, tool_status, tool_history
             
             # Connect events
             msg.submit(user_input, [msg, chatbot], [msg, chatbot], queue=False).then(
-                bot_response, chatbot, chatbot
+                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display]
             )
             
             submit_btn.click(user_input, [msg, chatbot], [msg, chatbot], queue=False).then(
-                bot_response, chatbot, chatbot
+                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display]
             )
             
             # Quick action button handlers
@@ -291,19 +403,19 @@ class GradioChatInterface:
                 return "", [{"role": "user", "content": "What have we discussed in our conversation?"}]
             
             quick_btn1.click(quick_action1, outputs=[msg, chatbot], queue=False).then(
-                bot_response, chatbot, chatbot
+                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display]
             )
             
             quick_btn2.click(quick_action2, outputs=[msg, chatbot], queue=False).then(
-                bot_response, chatbot, chatbot
+                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display]
             )
             
             quick_btn3.click(quick_action3, outputs=[msg, chatbot], queue=False).then(
-                bot_response, chatbot, chatbot
+                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display]
             )
             
             quick_btn4.click(quick_action4, outputs=[msg, chatbot], queue=False).then(
-                bot_response, chatbot, chatbot
+                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display]
             )
             
             clear_btn.click(lambda: [], outputs=chatbot)
@@ -316,6 +428,14 @@ class GradioChatInterface:
                 user_id = self.generate_user_id(request)
                 return self.clear_memory(user_id)
             
+            def get_tool_status_for_user(request: gr.Request):
+                user_id = self.generate_user_id(request)
+                return self.get_tool_status(user_id)
+            
+            def get_tool_history_for_user(request: gr.Request):
+                user_id = self.generate_user_id(request)
+                return self.get_tool_history(user_id)
+            
             memory_btn.click(
                 get_memory_for_user,
                 outputs=memory_display
@@ -324,6 +444,16 @@ class GradioChatInterface:
             clear_memory_btn.click(
                 clear_memory_for_user,
                 outputs=memory_display
+            )
+            
+            refresh_tool_status_btn.click(
+                get_tool_status_for_user,
+                outputs=tool_status_display
+            )
+            
+            refresh_tool_history_btn.click(
+                get_tool_history_for_user,
+                outputs=tool_history_display
             )
         
         return interface

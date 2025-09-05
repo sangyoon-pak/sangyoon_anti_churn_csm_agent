@@ -35,6 +35,13 @@ This system uses a **decision-making agent** with an integrated **evaluator tool
 - **Conversation History** - Maintains context for more relevant responses
 - **Memory Persistence** - Data survives application restarts
 
+### Tool Visibility System
+- **Real-time Tool Status** - Shows when tools are being executed in the UI
+- **Tool Call Tracking** - Monitors tool execution with start/completion/error status
+- **User-specific Status** - Each user session has independent tool status tracking
+- **Visual Indicators** - Clear status indicators (🔄 running, ✅ completed, ❌ error)
+- **Tool Call Logging** - Console logging for debugging and monitoring
+
 ### Data Components
 - **Data Loader** - Loads customer data from CSV files
 - **Context Builder** - Converts data into natural language context
@@ -97,6 +104,7 @@ This starts the main chat interface where you can:
 - Get recommendations: `"How can I help TECH002 reduce their churn risk?"`
 - Access customer data and analysis
 - See multi-agent analysis with tracing
+- **Monitor tool execution in real-time** - See when tools are being called and their status
 
 ### Command Line Interface
 ```bash
@@ -138,6 +146,32 @@ jupyter notebook notebooks/notebook.ipynb
   - Provides feedback for improvement
   - Determines pass/fail status
   - **UI Behavior**: Only shows evaluation results when recommendations FAIL
+
+## 🛠️ Tool Visibility Feature
+
+The system now includes real-time tool visibility to show users what's happening behind the scenes:
+
+### Features
+- **Real-time Status Display** - Shows current tool being executed in the UI
+- **Visual Indicators**:
+  - 🟢 **Ready** - System is idle and ready
+  - 🔄 **Using [Tool Name]...** - Tool is currently executing
+  - ✅ **Completed [Tool Name]** - Tool finished successfully
+  - ❌ **Error with [Tool Name]** - Tool encountered an error
+- **User-specific Tracking** - Each user session maintains independent tool status
+- **Manual Refresh** - Refresh button to update tool status
+- **Console Logging** - Detailed tool execution logs for debugging
+
+### How It Works
+1. When a user sends a message, the system processes it through the multi-agent framework
+2. As tools are called (customer data access, web search, evaluation), the UI shows real-time status
+3. Users can see exactly what the agent is doing instead of waiting in the dark
+4. Each browser session maintains its own tool status independently
+
+### Testing with Multiple Users
+- **User A (Chrome)**: Can see their own tool execution status
+- **User B (Firefox)**: Has completely separate tool status tracking
+- **Independent Sessions**: No interference between different user sessions
 
 ## 🔧 MCP Servers
 
