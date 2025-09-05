@@ -180,4 +180,4 @@ cython_debug/
 3_crew/engineering_team/output/
 
 # Ignore Accounts database in capstone project
-6_mcp/accounts.db
+6_mcp/accounts.dbchat_memory.db
