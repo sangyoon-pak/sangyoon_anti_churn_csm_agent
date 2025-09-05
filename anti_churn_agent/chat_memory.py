@@ -188,11 +188,11 @@ class ChatMemory:
             if not session:
                 return f"No conversation history found for session {session_id}"
             
-            # Get recent messages
+            # Get recent messages in chronological order (oldest first)
             cursor.execute("""
                 SELECT * FROM messages 
                 WHERE session_id = ? 
-                ORDER BY timestamp DESC 
+                ORDER BY timestamp ASC 
                 LIMIT ?
             """, (session_id, max_messages))
             recent_messages = cursor.fetchall()
@@ -223,7 +223,7 @@ class ChatMemory:
             
             # Add recent conversation highlights
             summary_parts.append("\n**Recent Conversation Highlights:**")
-            for msg in reversed(recent_messages[-5:]):  # Last 5 messages, in chronological order
+            for msg in recent_messages[-5:]:  # Last 5 messages, already in chronological order
                 role_emoji = "👤" if msg['role'] == "user" else "🤖"
                 timestamp = datetime.fromisoformat(msg['timestamp']).strftime('%H:%M')
                 content_preview = msg['content'][:100] + "..." if len(msg['content']) > 100 else msg['content']
@@ -285,7 +285,7 @@ class ChatMemory:
             cursor.execute("""
                 SELECT * FROM messages 
                 WHERE session_id = ? 
-                ORDER BY timestamp DESC 
+                ORDER BY timestamp ASC 
                 LIMIT ?
             """, (session_id, max_messages))
             recent_messages = cursor.fetchall()
@@ -294,7 +294,7 @@ class ChatMemory:
                 return "No recent conversation context available."
             
             context_parts = ["**Recent Conversation Context:**"]
-            for msg in reversed(recent_messages):  # Reverse to show in chronological order
+            for msg in recent_messages:  # Already in chronological order
                 role_emoji = "👤" if msg['role'] == "user" else "🤖"
                 timestamp = datetime.fromisoformat(msg['timestamp']).strftime('%H:%M')
                 context_parts.append(f"- {role_emoji} **{msg['role'].title()}** ({timestamp}): {msg['content']}")

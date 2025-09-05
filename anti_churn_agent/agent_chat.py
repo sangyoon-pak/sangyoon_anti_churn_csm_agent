@@ -7,6 +7,8 @@ Gradio web interface version
 import os
 import asyncio
 import gradio as gr
+import uuid
+import hashlib
 from typing import List, Dict, Any
 from traced_system import TracedMultiAgentSystem
 from data_loader import DataLoader
@@ -16,63 +18,128 @@ class GradioChatInterface:
     """Gradio web chat interface for the anti-churn agent system"""
     
     def __init__(self):
-        self.system = None
         self.data_loader = DataLoader()
         self.memory = ChatMemory()
-        self.session_id = None
-        self.setup_system()
+        self.user_systems = {}  # Store systems per user
+        self.api_key = os.getenv("OPENAI_API_KEY")
     
-    def setup_system(self):
-        """Setup the traced multi-agent system"""
-        api_key = os.getenv("OPENAI_API_KEY")
-        if api_key:
-            self.system = TracedMultiAgentSystem(api_key)
-            # Set session ID for memory
-            self.session_id = f"gradio_session_{id(self)}"
-            if self.system:
-                self.system.set_session_id(self.session_id)
+    def generate_user_id(self, request: gr.Request) -> str:
+        """Generate a unique session ID for each browser tab"""
+        # Try to get username first (if available)
+        username = getattr(request, 'username', None)
+        if username:
+            # For authenticated users, still create unique sessions per tab
+            return f"user_{username}_{uuid.uuid4().hex[:8]}"
+        
+        # For anonymous users, create a unique session per browser tab
+        # Use IP + User-Agent (without port) for stability across requests
+        ip = request.client.host
+        user_agent = getattr(request, 'headers', {}).get('user-agent', '')
+        
+        # Create a unique ID that's consistent within a browser but unique across browsers
+        # Remove port dependency since ports change between requests
+        combined = f"{ip}_{user_agent}"
+        session_hash = hashlib.md5(combined.encode()).hexdigest()[:12]
+        session_id = f"session_{session_hash}"
+        
+        # Debug: Print session ID generation
+        print(f"DEBUG: Generated session ID: {session_id}")
+        print(f"DEBUG: IP: {ip}, User-Agent: {user_agent[:50]}...")
+        
+        return session_id
     
-    async def process_message(self, message: str, history: List[List[str]]) -> str:
+    def get_or_create_user_system(self, user_id: str):
+        """Get or create a system for a specific user"""
+        # Debug: Print system lookup
+        print(f"DEBUG: Looking for user_id: {user_id}")
+        print(f"DEBUG: Current user_systems keys: {list(self.user_systems.keys())}")
+        
+        if user_id not in self.user_systems:
+            if not self.api_key:
+                return None
+            
+            # Create new system for this user
+            system = TracedMultiAgentSystem(self.api_key)
+            session_id = f"user_{user_id}_{uuid.uuid4().hex[:8]}"
+            system.set_session_id(session_id)
+            self.user_systems[user_id] = {
+                'system': system,
+                'session_id': session_id
+            }
+            print(f"DEBUG: Created new system for user_id: {user_id}")
+        else:
+            print(f"DEBUG: Found existing system for user_id: {user_id}")
+        
+        return self.user_systems[user_id]
+    
+    async def process_message(self, message: str, history: List[List[str]], user_id: str = None) -> str:
         """Process a message through the traced multi-agent system"""
-        if not self.system:
+        if not user_id:
+            user_id = "anonymous"
+        
+        user_system_data = self.get_or_create_user_system(user_id)
+        if not user_system_data:
             return "Error: System not initialized. Please check your OPENAI_API_KEY."
         
+        system = user_system_data['system']
+        session_id = user_system_data['session_id']
+        
         try:
-            # Add user message to memory
-            self.memory.add_message(self.session_id, "user", message)
-            
-            # Process the message
-            result = await self.system.process_user_query_with_trace(message)
-            
-            # Add assistant response to memory
-            response = result['decision_result']
-            self.memory.add_message(self.session_id, "assistant", response)
+            # Process the message (memory is handled internally by the system)
+            result = await system.process_user_query_with_trace(message)
             
             # Let the LLM handle all formatting and response structure
-            return response
+            return result['decision_result']
             
         except Exception as e:
             error_msg = f"Error processing message: {str(e)}"
-            self.memory.add_message(self.session_id, "assistant", error_msg)
+            # Add error to system memory
+            system.memory.add_message(session_id, "assistant", error_msg)
             return error_msg
     
-    def get_memory_summary(self) -> str:
+    def get_memory_summary(self, user_id: str = None) -> str:
         """Get conversation memory summary"""
-        if not self.system or not self.session_id:
+        if not user_id:
+            user_id = "anonymous"
+        
+        # Debug: Print memory retrieval (remove in production)
+        # print(f"DEBUG: Getting memory summary for user_id: {user_id}")
+        
+        user_system_data = self.get_or_create_user_system(user_id)
+        if not user_system_data:
+            # print(f"DEBUG: No system data found for user_id: {user_id}")
             return "Memory not available"
+        
         try:
-            return self.system.get_conversation_summary()
-        except:
+            session_id = user_system_data['session_id']
+            # print(f"DEBUG: Getting memory for session_id: {session_id}")
+            summary = user_system_data['system'].get_conversation_summary()
+            # print(f"DEBUG: Memory summary length: {len(summary) if summary else 0}")
+            return summary
+        except Exception as e:
+            # print(f"DEBUG: Error getting memory: {e}")
             return "Memory not available"
     
-    def clear_memory(self) -> str:
+    def clear_memory(self, user_id: str = None) -> str:
         """Clear conversation memory"""
-        if self.session_id:
-            self.memory.clear_session(self.session_id)
-            # Generate new session ID
-            self.session_id = f"gradio_session_{id(self)}"
-            if self.system:
-                self.system.set_session_id(self.session_id)
+        if not user_id:
+            user_id = "anonymous"
+        
+        user_system_data = self.get_or_create_user_system(user_id)
+        if not user_system_data:
+            return "Memory not available"
+        
+        system = user_system_data['system']
+        session_id = user_system_data['session_id']
+        
+        # Clear the session
+        system.memory.clear_session(session_id)
+        
+        # Generate new session ID
+        new_session_id = f"user_{user_id}_{uuid.uuid4().hex[:8]}"
+        system.set_session_id(new_session_id)
+        user_system_data['session_id'] = new_session_id
+        
         return "Memory cleared"
     
     def create_interface(self):
@@ -184,14 +251,17 @@ class GradioChatInterface:
             def user_input(message, history):
                 return "", history + [{"role": "user", "content": message}]
             
-            def bot_response(history):
+            def bot_response(history, request: gr.Request):
                 if not history or not history[-1].get("content"):
                     return history
                 
                 user_message = history[-1]["content"]
+                # Generate stable user ID
+                user_id = self.generate_user_id(request)
+                
                 # Process message asynchronously using asyncio.run
                 try:
-                    response = asyncio.run(self.process_message(user_message, history))
+                    response = asyncio.run(self.process_message(user_message, history, user_id))
                 except Exception as e:
                     response = f"Error: {str(e)}"
                 
@@ -238,13 +308,21 @@ class GradioChatInterface:
             
             clear_btn.click(lambda: [], outputs=chatbot)
             
+            def get_memory_for_user(request: gr.Request):
+                user_id = self.generate_user_id(request)
+                return self.get_memory_summary(user_id)
+            
+            def clear_memory_for_user(request: gr.Request):
+                user_id = self.generate_user_id(request)
+                return self.clear_memory(user_id)
+            
             memory_btn.click(
-                self.get_memory_summary,
+                get_memory_for_user,
                 outputs=memory_display
             )
             
             clear_memory_btn.click(
-                self.clear_memory,
+                clear_memory_for_user,
                 outputs=memory_display
             )
         
