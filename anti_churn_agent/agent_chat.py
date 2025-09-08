@@ -16,6 +16,44 @@ from traced_system import TracedMultiAgentSystem
 from data_loader import DataLoader
 from chat_memory import ChatMemory
 
+class ResponseTimer:
+    """Simple response timer for chat interface"""
+    
+    def __init__(self):
+        self.start_time = None
+        self.is_running = False
+        self.last_duration = None
+    
+    def start(self):
+        """Start the timer"""
+        self.start_time = time.time()
+        self.is_running = True
+        self.last_duration = None
+    
+    def stop(self):
+        """Stop the timer and return duration"""
+        if self.is_running and self.start_time:
+            self.last_duration = time.time() - self.start_time
+            self.is_running = False
+            return self.last_duration
+        return None
+    
+    def reset(self):
+        """Reset timer to clean slate"""
+        self.start_time = None
+        self.is_running = False
+        self.last_duration = None
+    
+    def get_status(self):
+        """Get current timer status"""
+        if self.is_running and self.start_time:
+            current_duration = time.time() - self.start_time
+            return f"⏱️ {current_duration:.1f}s"
+        elif self.last_duration is not None:
+            return f"✅ {self.last_duration:.1f}s"
+        else:
+            return "⏱️ Ready"
+
 class GradioChatInterface:
     """Gradio web chat interface for the anti-churn agent system"""
     
@@ -26,6 +64,7 @@ class GradioChatInterface:
         self.api_key = os.getenv("OPENAI_API_KEY")
         self.tool_status = {}  # Store tool status per user
         self.tool_history = {}  # Store tool call history per user
+        self.timer = ResponseTimer()  # Response timer instance
     
     def generate_user_id(self, request: gr.Request) -> str:
         """Generate a unique session ID for each browser tab"""
@@ -244,7 +283,24 @@ class GradioChatInterface:
     
     def create_interface(self):
         """Create the Gradio interface"""
-        with gr.Blocks(title="Anti-Churn Multi-Agent Chat", theme=gr.themes.Soft()) as interface:
+        # Simple CSS for clean interface
+        custom_css = """
+        /* Clean interface styling */
+        .gradio-container .chatbot {
+            border-radius: 8px;
+        }
+        
+        /* Hide the "processing" text from Gradio's built-in timer */
+        .progress-text {
+            display: none !important;
+        }
+        """
+        
+        with gr.Blocks(
+            title="Anti-Churn Multi-Agent Chat", 
+            theme=gr.themes.Soft(),
+            css=custom_css
+        ) as interface:
             gr.Markdown("# 🤖 Anti-Churn Multi-Agent Chat")
             gr.Markdown("**AI-powered customer success assistant using multi-agent system**")
             
@@ -330,6 +386,10 @@ class GradioChatInterface:
                     gr.Markdown("### 📋 Tool History")
                     tool_history_display = gr.Markdown("No recent tool activity", elem_id="tool-history")
                     
+                    # Response Timer Display
+                    gr.Markdown("### ⏱️ Response Timer")
+                    timer_display = gr.Markdown("⏱️ Ready", elem_id="response-timer")
+                    
                     # Available tools info
                     with gr.Accordion("🛠️ Available Tools", open=False):
                         gr.Markdown("""
@@ -363,30 +423,37 @@ class GradioChatInterface:
             
             def bot_response(history, request: gr.Request):
                 if not history or not history[-1].get("content"):
-                    return history, "🟢 Ready"
+                    return history, "🟢 Ready", "No recent tool activity", "⏱️ Ready"
                 
                 user_message = history[-1]["content"]
                 # Generate stable user ID
                 user_id = self.generate_user_id(request)
+                
+                # Start timer
+                self.timer.start()
                 
                 # Process message asynchronously using asyncio.run
                 try:
                     response = asyncio.run(self.process_message(user_message, history, user_id))
                 except Exception as e:
                     response = f"Error: {str(e)}"
+                finally:
+                    # Stop timer
+                    self.timer.stop()
                 
                 history.append({"role": "assistant", "content": response})
                 tool_status = self.get_tool_status(user_id)
                 tool_history = self.get_tool_history(user_id)
-                return history, tool_status, tool_history
+                timer_status = self.timer.get_status()
+                return history, tool_status, tool_history, timer_status
             
-            # Connect events
+            # Connect events with default processing indicator
             msg.submit(user_input, [msg, chatbot], [msg, chatbot], queue=False).then(
-                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display]
+                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display, timer_display]
             )
             
             submit_btn.click(user_input, [msg, chatbot], [msg, chatbot], queue=False).then(
-                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display]
+                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display, timer_display]
             )
             
             # Quick action button handlers
@@ -403,19 +470,19 @@ class GradioChatInterface:
                 return "", [{"role": "user", "content": "What have we discussed in our conversation?"}]
             
             quick_btn1.click(quick_action1, outputs=[msg, chatbot], queue=False).then(
-                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display]
+                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display, timer_display]
             )
             
             quick_btn2.click(quick_action2, outputs=[msg, chatbot], queue=False).then(
-                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display]
+                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display, timer_display]
             )
             
             quick_btn3.click(quick_action3, outputs=[msg, chatbot], queue=False).then(
-                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display]
+                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display, timer_display]
             )
             
             quick_btn4.click(quick_action4, outputs=[msg, chatbot], queue=False).then(
-                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display]
+                bot_response, [chatbot], [chatbot, tool_status_display, tool_history_display, timer_display]
             )
             
             clear_btn.click(lambda: [], outputs=chatbot)
@@ -476,7 +543,9 @@ def main():
         server_name="0.0.0.0",
         server_port=7860,
         share=False,
-        show_error=True
+        show_error=False,  # Hide detailed errors for security
+        auth=("username", "password") if os.getenv("GRADIO_AUTH") else None,  # Optional auth
+        max_threads=10  # Limit concurrent users
     )
 
 if __name__ == "__main__":
