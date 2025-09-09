@@ -59,8 +59,6 @@ This system uses a **decision-making agent** with an integrated **evaluator tool
 ## 🏗️ Architecture
 <img width="512" height="512" alt="image" src="https://github.com/user-attachments/assets/112584e4-eeeb-4e92-a02c-c5f59d4777ee" />
 
-
-
 ### Multi-Agent System
 - **OpenAI Agent Framework** - Uses `openai-agents` for agent orchestration and tracing
 - **Async Processing** - All operations use async/await for better performance
@@ -319,5 +317,4 @@ These notebooks can be used for:
 - OpenAI API key
 - Brave API key (optional, for web search)
 - Customer data in CSV format
-
 
