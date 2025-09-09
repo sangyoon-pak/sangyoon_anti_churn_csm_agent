@@ -59,6 +59,8 @@ This system uses a **decision-making agent** with an integrated **evaluator tool
 ## 🏗️ Architecture
 <img width="512" height="512" alt="image" src="https://github.com/user-attachments/assets/112584e4-eeeb-4e92-a02c-c5f59d4777ee" />
 
+
+
 ### Multi-Agent System
 - **OpenAI Agent Framework** - Uses `openai-agents` for agent orchestration and tracing
 - **Async Processing** - All operations use async/await for better performance
@@ -71,7 +73,7 @@ This system uses a **decision-making agent** with an integrated **evaluator tool
 - **Web Search Server** - External research via Brave API (public MCP server)
 
 ### Appier Marketing Solution Integration
-- **Product Knowledge** - Comprehensive understanding of AIQUA, CrossX, BotBonnie, and Appier Data
+- **Product Knowledge** - Comprehensive understanding of AIQUA, BotBonnie, and Appier Data
 - **Industry Expertise** - Deep knowledge of e-commerce, financial services, gaming, and healthcare markets
 - **Solution Recommendations** - Agent suggests specific Appier products based on customer needs
 - **Best Practices** - Leverages Appier's proven customer success methodologies
