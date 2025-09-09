@@ -71,7 +71,7 @@ This system uses a **decision-making agent** with an integrated **evaluator tool
 - **Web Search Server** - External research via Brave API (public MCP server)
 
 ### Appier Marketing Solution Integration
-- **Product Knowledge** - Comprehensive understanding of AIQUA, CrossX, BotBonnie, and Appier Data
+- **Product Knowledge** - Comprehensive understanding of AIQUA, BotBonnie, and Appier Data
 - **Industry Expertise** - Deep knowledge of e-commerce, financial services, gaming, and healthcare markets
 - **Solution Recommendations** - Agent suggests specific Appier products based on customer needs
 - **Best Practices** - Leverages Appier's proven customer success methodologies
