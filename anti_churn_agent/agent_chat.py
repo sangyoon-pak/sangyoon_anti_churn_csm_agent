@@ -543,9 +543,7 @@ def main():
         server_name="0.0.0.0",
         server_port=7860,
         share=False,
-        show_error=False,  # Hide detailed errors for security
-        auth=("username", "password") if os.getenv("GRADIO_AUTH") else None,  # Optional auth
-        max_threads=10  # Limit concurrent users
+        show_error=True
     )
 
 if __name__ == "__main__":
