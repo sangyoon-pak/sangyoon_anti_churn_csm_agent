@@ -57,7 +57,7 @@ This system uses a **decision-making agent** with an integrated **evaluator tool
 2. **✅ Evaluator Tool** - Integrated tool that assesses recommendation quality
 
 ## 🏗️ Architecture
-<img width="512" height="512" alt="image" src="https://github.com/user-attachments/assets/112584e4-eeeb-4e92-a02c-c5f59d4777ee" />
+![image/png](https://cdn-uploads.huggingface.co/production/uploads/68bfe5d83d3e61caf2556502/Dq_9T8st13ClpIHLqH4fC.png)
 
 
 

@@ -257,4 +257,4 @@ def get_appier_context() -> str:
 
 def get_appier_summary() -> str:
     """Get a concise summary of Appier for quick reference"""
-    return """Appier is a leading AI-powered marketing technology company specializing in cross-screen marketing automation, customer engagement, and data intelligence. Our solutions help businesses drive growth through intelligent customer acquisition and retention, with expertise in e-commerce, financial services, gaming, and healthcare industries. We provide AIQUA for customer engagement, CrossX for cross-screen marketing, BotBonnie for conversational marketing, and Appier Data for customer insights."""
+    return """Appier is a leading AI-powered marketing technology company specializing in cross-screen marketing automation, customer engagement, and data intelligence. Our solutions help businesses drive growth through intelligent customer acquisition and retention, with expertise in e-commerce, financial services, gaming, and healthcare industries. We provide AIQUA for customer engagement, CrossX for cross-screen marketing, BotBonnie for conversational marketing, and AIRIS as a CDP product for customer insights."""
