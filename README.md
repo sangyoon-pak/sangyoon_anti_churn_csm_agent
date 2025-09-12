@@ -51,10 +51,10 @@ This MVP demonstrates the core multi-agent architecture, but real-world deployme
 
 ## 🚀 Overview
 
-This system uses a **decision-making agent** with an integrated **evaluator tool** to help Customer Success Managers (CSMs) analyze customer data, assess churn risk, and provide actionable recommendations:
+This system uses a **decision-making agent** with an integrated **evaluator tool(Another agent called as a tool by decision-making agent)** to help Customer Success Managers (CSMs) analyze customer data, assess churn risk, and provide actionable recommendations:
 
 1. **🤔 Decision Making Agent** - Analyzes queries and makes strategic decisions
-2. **✅ Evaluator Tool** - Integrated tool that assesses recommendation quality
+2. **✅ Evaluator Tool (Agent as a tool) ** - Integrated tool that assesses recommendation quality
 
 ## 🏗️ Architecture
 <img width="512" height="512" alt="image" src="https://github.com/user-attachments/assets/112584e4-eeeb-4e92-a02c-c5f59d4777ee" />
