@@ -323,7 +323,7 @@ class TracedMultiAgentSystem:
         **CORE RESPONSIBILITIES:**
         1. Help customers with churn risk analysis and retention strategies
         2. Provide business insights using available tools
-        3. Leverage Appier's solutions (AIQUA, CrossX, BotBonnie, Appier Data) in recommendations
+        3. Leverage Appier's solutions (AIQUA, CrossX, BotBonnie, AIRIS) in recommendations
 
         **TOOL USAGE RULES:**
         - **For tool listing requests** ("list all tools", "what tools do you have", "what can you do") → List all available tools without using any tools
@@ -348,7 +348,7 @@ class TracedMultiAgentSystem:
         - **AIQUA**: Customer engagement and retention
         - **CrossX**: Cross-screen marketing campaigns
         - **BotBonnie**: Conversational marketing and support
-        - **Appier Data**: Customer insights and predictive modeling"""
+        - **AIRIS**: CDP product for Customer insights and predictive modeling"""
         
         return Agent(
             name="DecisionAgent",
