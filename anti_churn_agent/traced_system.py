@@ -331,9 +331,9 @@ class TracedMultiAgentSystem:
         - **For "show me high-risk customers" or "which customers have high churn risk"** → Use get_high_risk_customers() tool
         - **For specific customer requests** ("tell me about ACME001", "customer details for FIN001") → Use get_customer_data() tool
         - **For contextual follow-up requests** ("how about other customers", "what about the rest", "analyze the others") → Use get_customer_list() first, then get_customer_data() for each remaining customer
-        - **For retention strategy requests** ("best retention strategies", "how to reduce churn") → Use web search + evaluator
+        - **For retention strategy requests** ("best retention strategies", "how to reduce churn") → FIRST generate your own recommendations, THEN use evaluator to assess them
         - **For market research requests** ("industry trends", "market insights") → Use web search
-        - **For strategic advice requests** ("recommendations", "action plans") → Use evaluator
+        - **For strategic advice requests** ("recommendations", "action plans") → FIRST generate your own strategic recommendations, THEN use evaluator to assess them
         - **For casual conversation** (greetings, thanks) → Respond conversationally without tools
 
         **AVAILABLE TOOLS:**
@@ -382,12 +382,17 @@ class TracedMultiAgentSystem:
         - 3-4: Poor - Significant issues, needs major revision
         - 1-2: Unacceptable - High risk, low impact, or infeasible
 
-        **Response Format:**
-        - Overall rating (1-10)
-        - Pass/Fail decision
-        - Key strengths and weaknesses
-        - Specific improvement suggestions considering Appier's capabilities
-        - Final recommendation with Appier solution alignment
+        **Response Format (JSON):**
+        You must respond with a valid JSON object containing:
+        {
+            "rating": <number 1-10>,
+            "pass": <boolean true/false>,
+            "reasoning": "<explanation of the decision>",
+            "strengths": ["<strength 1>", "<strength 2>", ...],
+            "weaknesses": ["<weakness 1>", "<weakness 2>", ...],
+            "improvements": ["<improvement 1>", "<improvement 2>", ...],
+            "final_recommendation": "<final recommendation with Appier solution alignment>"
+        }
 
         **Appier Context for Evaluation:**
         {get_appier_summary()}
@@ -403,7 +408,7 @@ class TracedMultiAgentSystem:
         
         return evaluator_agent.as_tool(
             tool_name="Evaluator",
-            tool_description="This tool evaluates the quality and feasibility of STRATEGIC customer success recommendations and business advice. Only use this tool when you are providing strategic recommendations, retention strategies, or business action plans. Do NOT use for simple data requests or basic questions."
+            tool_description="This tool evaluates the quality and feasibility of STRATEGIC customer success recommendations and business advice. It returns a JSON response with a clear pass/fail decision. Use this tool AFTER you have generated your own detailed recommendations to assess their quality. Do NOT use for simple data requests or basic questions."
         )
 
     async def process_user_query_with_trace(self, user_query: str) -> Dict[str, Any]:
@@ -484,7 +489,7 @@ Please analyze this query and provide an appropriate response.
 8. **For contextual follow-up requests like "how about other customers", "what about the rest", "analyze the others" - FIRST use get_customer_list() to see all customers, then use get_customer_data() for each remaining customer not yet analyzed**
 9. **For web research requests like "research on the web", "web search", "current market trends" - USE the web search tool**
 10. **When analyzing customer issues, proactively suggest and use web search for market context and trends**
-11. **IMPORTANT: Use the evaluator tool when providing strategic recommendations or business advice**
+11. **IMPORTANT: For strategic recommendations - FIRST generate your own detailed recommendations, THEN use the evaluator tool to assess them**
 12. **For simple data requests, greetings, or basic questions, do NOT use the evaluator tool**
 13. **You must respond to the ACTUAL user query provided above**
 
@@ -515,10 +520,16 @@ Use the conversation context to provide more relevant and contextual responses."
                 # Determine if evaluation shows FAIL
                 is_fail = False
                 if evaluation_result:
-                    # Check if evaluation contains "FAIL" or low rating
-                    evaluation_text = str(evaluation_result).lower()
-                    if "fail" in evaluation_text or any(phrase in evaluation_text for phrase in ["unacceptable", "poor", "significant issues"]):
-                        is_fail = True
+                    try:
+                        # Try to parse as JSON first
+                        import json
+                        evaluation_json = json.loads(str(evaluation_result))
+                        is_fail = not evaluation_json.get("pass", True)  # Default to pass if not specified
+                    except (json.JSONDecodeError, TypeError):
+                        # Fallback to text parsing if JSON parsing fails
+                        evaluation_text = str(evaluation_result).lower()
+                        if "fail" in evaluation_text or any(phrase in evaluation_text for phrase in ["unacceptable", "poor", "significant issues"]):
+                            is_fail = True
                 
                 # If evaluation passed or no evaluation was done, break the retry loop
                 if not is_fail:
@@ -553,7 +564,7 @@ Please analyze this query and provide an improved response. The previous respons
 8. **For contextual follow-up requests like "how about other customers", "what about the rest", "analyze the others" - FIRST use get_customer_list() to see all customers, then use get_customer_data() for each remaining customer not yet analyzed**
 9. **For web research requests like "research on the web", "web search", "current market trends" - USE the web search tool**
 10. **When analyzing customer issues, proactively suggest and use web search for market context and trends**
-11. **IMPORTANT: Use the evaluator tool when providing strategic recommendations or business advice**
+11. **IMPORTANT: For strategic recommendations - FIRST generate your own detailed recommendations, THEN use the evaluator tool to assess them**
 12. **For simple data requests, greetings, or basic questions, do NOT use the evaluator tool**
 13. **You must respond to the ACTUAL user query provided above**
 
