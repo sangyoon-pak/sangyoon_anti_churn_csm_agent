@@ -65,7 +65,7 @@ This system uses a **decision-making agent** with an integrated **evaluator tool
 - **OpenAI Agent Framework** - Uses `openai-agents` for agent orchestration and tracing
 - **Async Processing** - All operations use async/await for better performance
 - **MCP Servers** - Model Context Protocol servers for data access and web search
-- **Tool Integration** - Evaluator works as a tool within the decision agent
+- **Tool Integration** - Evaluator works as an internal quality gate tool within the decision agent
 - **Appier Context Integration** - Comprehensive knowledge of Appier Marketing Solution products and capabilities
 
 ### MCP Servers
@@ -191,13 +191,13 @@ jupyter notebook notebooks/notebook.ipynb
   - **Strategic Web Search**: Only uses web search for high churn risk clients (>70%)
 
 ### Evaluator Tool
-- **Purpose**: Integrated tool that assesses recommendation quality
+- **Purpose**: Integrated tool that assesses recommendation quality with minimal JSON response
 - **Capabilities**:
+  - Returns minimal JSON: `{"rating": 8, "pass": true}`
   - Rates recommendations on a scale of 1-10
-  - Assesses feasibility and potential risks
-  - Provides feedback for improvement
-  - Determines pass/fail status
-  - **UI Behavior**: Only shows evaluation results when recommendations FAIL
+  - Determines pass/fail status for automatic retry logic
+  - **Internal Quality Gate**: Serves as pure pass/fail mechanism without exposing detailed analysis
+  - **Automatic Retry**: Triggers retry loop when recommendations fail evaluation
 
 ## 🛠️ Tool Visibility & Response Timer Features
 
@@ -289,16 +289,16 @@ These notebooks can be used for:
 2. **Response Timer Starts** → Begins tracking elapsed time
 3. **Decision Agent** → Analyzes the query and determines approach
 4. **Data Gathering** → Accesses customer data and web research (if high-risk)
-5. **Decision Agent** → Makes final recommendation with research
-6. **Evaluator Tool** → Assesses recommendation quality internally
-7. **Retry Loop** → If FAIL, automatically retries with evaluator feedback (up to 2 retries)
+5. **Decision Agent** → Generates detailed recommendations first
+6. **Evaluator Tool** → Assesses recommendations with minimal JSON response (`{"rating": 8, "pass": true}`)
+7. **Quality Gate** → If `pass: false`, automatically retries with feedback (up to 2 retries)
 8. **Response Timer Stops** → Records final elapsed time
-9. **Result** → Returns analysis with evaluation feedback only on FAIL
+9. **Result** → Returns clean recommendations without evaluator details
 
 ## 🎯 Key Features
 
 - **Chat Interface** - Interactive chat interface for customer analysis
-- **Integrated Evaluator Tool** - Quality assessment built into decision process with automatic retry loop
+- **Minimal JSON Evaluator** - Quality assessment with clean `{"rating": 8, "pass": true}` response and automatic retry loop
 - **Strategic Web Search** - Only used when needed for high-risk clients
 - **Data-Driven Analysis** - Based on real customer data
 - **Async Processing** - Efficient handling of multiple operations
@@ -311,7 +311,8 @@ These notebooks can be used for:
 - **Session Management** - Separate memory for different chat instances
 - **Response Timer** - Clean elapsed time tracking for user experience
 - **Tool Visibility** - Real-time tool execution status and history
-- **Multi-Agent Retry Logic** - Automatic quality improvement through evaluator feedback
+- **Robust JSON Parsing** - JSON-first evaluation parsing with fallback to structured text parsing
+- **Clean Code Architecture** - Simplified evaluator system without complex text cleaning logic
 
 ## 🚨 Requirements
 
