@@ -383,16 +383,13 @@ class TracedMultiAgentSystem:
         - 1-2: Unacceptable - High risk, low impact, or infeasible
 
         **Response Format (JSON):**
-        You must respond with a valid JSON object containing:
-        {
+        You must respond with a valid JSON object containing ONLY these fields:
+        {{
             "rating": <number 1-10>,
-            "pass": <boolean true/false>,
-            "reasoning": "<explanation of the decision>",
-            "strengths": ["<strength 1>", "<strength 2>", ...],
-            "weaknesses": ["<weakness 1>", "<weakness 2>", ...],
-            "improvements": ["<improvement 1>", "<improvement 2>", ...],
-            "final_recommendation": "<final recommendation with Appier solution alignment>"
-        }
+            "pass": <boolean true/false>
+        }}
+        
+        **IMPORTANT:** Do NOT include any other fields like reasoning, strengths, weaknesses, improvements, or final_recommendation. Only return the rating and pass/fail decision.
 
         **Appier Context for Evaluation:**
         {get_appier_summary()}
@@ -526,10 +523,18 @@ Use the conversation context to provide more relevant and contextual responses."
                         evaluation_json = json.loads(str(evaluation_result))
                         is_fail = not evaluation_json.get("pass", True)  # Default to pass if not specified
                     except (json.JSONDecodeError, TypeError):
-                        # Fallback to text parsing if JSON parsing fails
-                        evaluation_text = str(evaluation_result).lower()
-                        if "fail" in evaluation_text or any(phrase in evaluation_text for phrase in ["unacceptable", "poor", "significant issues"]):
-                            is_fail = True
+                        # Fallback: Look for explicit "Pass/Fail Decision:" section
+                        evaluation_text = str(evaluation_result)
+                        import re
+                        
+                        # Look for "Pass/Fail Decision:" followed by "Pass" or "Fail"
+                        decision_match = re.search(r'Pass/Fail Decision[:\s]*([Pp]ass|[Ff]ail)', evaluation_text)
+                        if decision_match:
+                            decision = decision_match.group(1).lower()
+                            is_fail = (decision == "fail")
+                        else:
+                            # If no explicit decision found, default to pass (don't retry)
+                            is_fail = False
                 
                 # If evaluation passed or no evaluation was done, break the retry loop
                 if not is_fail:
